@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhistleBox - Admin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div id="complaintModal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="modal-title"></h2>
+            <p><strong>ID:</strong> <span id="modal-id"></span></p>
+            <p><strong>Complaint:</strong> <span id="modal-complaint"></span></p>
+            <p><strong>Location:</strong> <span id="modal-location"></span></p>
+            <p><strong>Category:</strong> <span id="modal-category"></span></p>
+            <p><strong>Date:</strong> <span id="modal-date"></span></p>
+            <p><strong>Status:</strong> <span id="modal-status"></span></p>
+            <div id="modal-file"></div>
+        </div>
+    </div>
+    <div class="admin-grid-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>WhistleBox</h2>
+            </div>
+            <ul class="sidebar-nav">
+                <li><a href="{{ url_for('admin') }}" class="active"><i class="fas fa-home"></i> Home</a></li>
+                <li><a href="{{ url_for('admin') }}"><i class="fas fa-list"></i> View Complaints</a></li>
+                <li><a href="{{ url_for('statistics') }}"><i class="fas fa-chart-bar"></i> Statistics</a></li>
+                <li><a href="/"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </aside>
+        <main class="main-content">
+            <header class="main-header">
+                <h1 class="admin-welcome">Welcome, Admin</h1>
+                <div class="header-actions">
+                    <form action="{{ url_for('admin_search') }}" method="post" class="search-bar">
+                        <input type="text" name="search" placeholder="Search complaints...">
+                        <button type="submit"><i class="fas fa-search"></i></button>
+                    </form>
+                    <button type="button" id="filter-btn"><i class="fas fa-filter"></i></button>
+                </div>
+            </header>
+            <section class="stats-summary">
+                <div class="stat-card">
+                    <h3>Total Complaints</h3>
+                    <p>{{ summary.total }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Pending</h3>
+                    <p>{{ summary.pending }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Resolved</h3>
+                    <p>{{ summary.resolved }}</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Rejected</h3>
+                    <p>{{ summary.rejected }}</p>
+                </div>
+            </section>
+            <div id="filter-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close-button filter-close">&times;</span>
+                    <h2>Filter Complaints</h2>
+                    <form action="{{ url_for('admin_search') }}" method="post">
+                        <label for="location">Location:</label>
+                        <select name="location" id="location">
+                            <option value="">All Locations</option>
+                            <option value="Hostel A">Hostel A</option>
+                            <option value="Hostel B">Hostel B</option>
+                            <option value="Compound 1">Compound 1</option>
+                        </select>
+                        <label for="month">Month:</label>
+                        <select name="month" id="month">
+                            <option value="">All Months</option>
+                            <option value="1">January</option>
+                            <option value="2">February</option>
+                            <option value="3">March</option>
+                            <option value="4">April</option>
+                            <option value="5">May</option>
+                            <option value="6">June</option>
+                            <option value="7">July</option>
+                            <option value="8">August</option>
+                            <option value="9">September</option>
+                            <option value="10">October</option>
+                            <option value="11">November</option>
+                            <option value="12">December</option>
+                        </select>
+                        <label for="status">Status:</label>
+                        <select name="status" id="status">
+                            <option value="">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                        <button type="submit" class="btn-apply-filters">Apply Filters</button>
+                    </form>
+                </div>
+            </div>
+            <section class="complaint-grid">
+                {% for complaint in complaints %}
+                <div class="complaint-card-admin">
+                    <div class="complaint-card-header">
+                        <h3>{{ complaint.title }}</h3>
+                        <span class="status-badge {{ complaint.status|lower }}">{{ complaint.status }}</span>
+                    </div>
+                    <div class="complaint-card-body">
+                        <p><strong>ID:</strong> {{ complaint.id }}</p>
+                        <p><strong>Category:</strong> {{ complaint.issue_type }}</p>
+                        <p><strong>Date:</strong> {{ complaint.timestamp|datetime }}</p>
+                        <div class="actions">
+                            <button class="btn-view" data-id="{{ complaint.id }}" data-title="{{ complaint.title }}" data-complaint="{{ complaint.complaint }}" data-location="{{ complaint.incident_place }}" data-category="{{ complaint.issue_type }}" data-date="{{ complaint.timestamp|datetime }}" data-status="{{ complaint.status }}">View Details</button>
+                            <div class="action-dropdown">
+                                <button class="btn-action">Actions</button>
+                                <div class="dropdown-content">
+                                    <form action="{{ url_for('update_status', complaint_id=complaint.id) }}" method="post">
+                                        <input type="hidden" name="status" value="Resolved">
+                                        <button type="submit">Mark as Resolved</button>
+                                    </form>
+                                    <form action="{{ url_for('update_status', complaint_id=complaint.id) }}" method="post">
+                                        <input type="hidden" name="status" value="Rejected">
+                                        <button type="submit">Mark as Rejected</button>
+                                    </form>
+                                    <form action="{{ url_for('delete_complaint', complaint_id=complaint.id) }}" method="post">
+                                        <button type="submit">Delete</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </section>
+        </main>
+    </div>
+    <script>
+        const complaintModal = document.getElementById('complaintModal');
+        const complaintCloseButton = complaintModal.querySelector('.close-button');
+        const viewButtons = document.querySelectorAll('.btn-view');
+
+        const filterModal = document.getElementById('filter-modal');
+        const filterBtn = document.getElementById('filter-btn');
+        const filterCloseButton = filterModal.querySelector('.filter-close');
+
+        filterBtn.addEventListener('click', () => {
+            filterModal.style.display = 'block';
+        });
+
+        filterCloseButton.addEventListener('click', () => {
+            filterModal.style.display = 'none';
+        });
+
+        const complaintGrid = document.querySelector('.complaint-grid');
+        complaintGrid.addEventListener('click', (event) => {
+            const viewButton = event.target.closest('.btn-view');
+            if (viewButton) {
+                document.getElementById('modal-title').textContent = viewButton.dataset.title;
+                document.getElementById('modal-id').textContent = viewButton.dataset.id;
+                document.getElementById('modal-complaint').textContent = viewButton.dataset.complaint;
+                document.getElementById('modal-location').textContent = viewButton.dataset.location;
+                document.getElementById('modal-category').textContent = viewButton.dataset.category;
+                document.getElementById('modal-date').textContent = viewButton.dataset.date;
+                document.getElementById('modal-status').textContent = viewButton.dataset.status;
+                
+                const fileLink = document.getElementById('modal-file');
+                fileLink.innerHTML = '';
+
+                complaintModal.style.display = 'block';
+            }
+        });
+
+        complaintCloseButton.addEventListener('click', () => {
+            complaintModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target == complaintModal) {
+                complaintModal.style.display = 'none';
+            }
+            if (event.target == filterModal) {
+                filterModal.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

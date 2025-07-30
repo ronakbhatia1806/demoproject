@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhistleBox - Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="user-info">
+            <span>Welcome, Hosteller</span>
+            <a href="/" class="logout-btn">Logout</a>
+        </div>
+    </header>
+    <div class="dashboard-container">
+        <div class="past-complaints-section">
+            <h2>Your Past Complaints</h2>
+            <div class="complaint-grid">
+                {% for complaint in complaints %}
+                <div class="complaint-card">
+                    <div class="complaint-card-header">
+                        <h3>{{ complaint.title }}</h3>
+                        <span class="status-badge {{ complaint.status|lower }}">
+                            {% if complaint.status|lower == 'pending' %}
+                                <i class="fas fa-clock"></i>
+                            {% elif complaint.status|lower == 'resolved' %}
+                                <i class="fas fa-check-circle"></i>
+                            {% elif complaint.status|lower == 'rejected' %}
+                                <i class="fas fa-times-circle"></i>
+                            {% endif %}
+                            {{ complaint.status }}
+                        </span>
+                    </div>
+                    <div class="complaint-card-body">
+                        <p>{{ complaint.complaint }}</p>
+                    </div>
+                    <div class="complaint-card-footer">
+                        <span class="complaint-meta"><i class="fas fa-map-marker-alt"></i> {{ complaint.incident_place }}</span>
+                        <span class="complaint-meta"><i class="fas fa-calendar-alt"></i> {{ complaint.timestamp|datetime }}</span>
+                        <button class="btn-view-details" data-complaint-id="{{ complaint.id }}">View Details</button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        <button id="new-complaint-btn" class="floating-btn">+</button>
+    </div>
+
+    <div id="complaint-form-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2>Submit a New Complaint</h2>
+            <form action="/submit" method="post">
+                <input type="text" name="title" placeholder="Complaint Title" required>
+                <textarea name="complaint" placeholder="Describe your complaint in detail" rows="5" required></textarea>
+                <select name="location" required>
+                    <option value="">Select Location</option>
+                    <option value="Hostel A">Hostel A</option>
+                    <option value="Hostel B">Hostel B</option>
+                    <option value="Compound 1">Compound 1</option>
+                </select>
+                <select name="category" required>
+                    <option value="">Select Category</option>
+                    <option value="Hygiene">Hygiene</option>
+                    <option value="Noise">Noise</option>
+                    <option value="Infrastructure">Infrastructure</option>
+                </select>
+                <button type="submit" class="submit-btn">Submit Complaint</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="complaint-details-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h2 id="details-title"></h2>
+            <p id="details-complaint"></p>
+            <p><strong>Status:</strong> <span id="details-status"></span></p>
+            <p><strong>Location:</strong> <span id="details-location"></span></p>
+            <p><strong>Category:</strong> <span id="details-category"></span></p>
+        </div>
+    </div>
+    <script>
+        const complaintFormModal = document.getElementById('complaint-form-modal');
+        const newComplaintBtn = document.getElementById('new-complaint-btn');
+        const closeButton = complaintFormModal.querySelector('.close-button');
+        const complaintDetailsModal = document.getElementById('complaint-details-modal');
+        const detailsCloseButton = complaintDetailsModal.querySelector('.close-button');
+
+        newComplaintBtn.addEventListener('click', () => {
+            complaintFormModal.style.display = 'block';
+        });
+
+        closeButton.addEventListener('click', () => {
+            complaintFormModal.style.display = 'none';
+        });
+
+        detailsCloseButton.addEventListener('click', () => {
+            complaintDetailsModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (event) => {
+            if (event.target == complaintFormModal) {
+                complaintFormModal.style.display = 'none';
+            }
+            if (event.target == complaintDetailsModal) {
+                complaintDetailsModal.style.display = 'none';
+            }
+        });
+
+        const pastComplaintsSection = document.querySelector('.past-complaints-section');
+        if (pastComplaintsSection) {
+            console.log("Event listener attached to .past-complaints-section");
+            pastComplaintsSection.addEventListener('click', (event) => {
+                console.log("Click event detected inside .past-complaints-section");
+                const viewButton = event.target.closest('.btn-view-details');
+                if (viewButton) {
+                    console.log("View Details button clicked");
+                    const complaintId = viewButton.dataset.complaintId;
+                    console.log("Fetching details for complaint ID:", complaintId);
+                    fetch(`/complaint/${complaintId}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            console.log("Data received:", data);
+                            document.getElementById('details-title').textContent = data.title;
+                            document.getElementById('details-complaint').textContent = data.complaint;
+                            document.getElementById('details-status').textContent = data.status;
+                            document.getElementById('details-location').textContent = data.incident_place;
+                            document.getElementById('details-category').textContent = data.category;
+                            complaintDetailsModal.style.display = 'block';
+                        })
+                        .catch(error => {
+                            console.error('There has been a problem with your fetch operation:', error);
+                        });
+                }
+            });
+        } else {
+            console.error(".past-complaints-section not found");
+        }
+    </script>
+</body>
+</html>
